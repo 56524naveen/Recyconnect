@@ -1,0 +1,11 @@
+{
+  "name": "RecyConnect",
+  "description": "From Scrap to Formal Recycling. An MVP bridging informal e-waste collectors with authorized recyclers.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
