@@ -1,6 +1,6 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import { Camera, Home, Package, DollarSign, Wallet, ShieldAlert, ArrowLeft, CloudOff, Cloud, RefreshCw } from 'lucide-react';
+import { Camera, Home, Package, DollarSign, Wallet, ShieldAlert, ArrowLeft, CloudOff, Cloud, RefreshCw, LogOut } from 'lucide-react';
 import CollectorHome from './CollectorHome';
 import CaptureImage from './CaptureImage';
 import LotDetails from './LotDetails';
@@ -8,19 +8,21 @@ import RecyclerMatch from './RecyclerMatch';
 import Prices from './Prices';
 import Safety from './Safety';
 import Earnings from './Earnings';
+import { useAuth } from '../../contexts/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 
 export function CollectorApp() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const location = useLocation();
   const navigate = useNavigate();
+  const { userProfile, currentUser } = useAuth();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -28,6 +30,10 @@ export function CollectorApp() {
   }, []);
 
   const hideBottomNav = location.pathname.includes('/camera');
+  
+  const handleLogout = () => {
+    signOut(auth);
+  };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gray-50 max-w-md mx-auto relative shadow-2xl overflow-hidden">
@@ -40,9 +46,9 @@ export function CollectorApp() {
                 <ArrowLeft className="w-6 h-6 text-gray-700" />
               </button>
             )}
-            <h1 className="text-xl font-bold text-gray-800">नमस्ते 👋 Raju</h1>
+            <h1 className="text-xl font-bold text-gray-800">नमस्ते 👋 {userProfile?.name || 'Dost'}</h1>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             {isOnline ? (
               <span className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
                 <Cloud className="w-3 h-3 mr-1" /> Online
@@ -52,6 +58,9 @@ export function CollectorApp() {
                 <CloudOff className="w-3 h-3 mr-1" /> Offline
               </span>
             )}
+            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition">
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
       )}

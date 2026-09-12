@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { API_BASE, MaterialPrice } from '../../types';
+import { MaterialPrice } from '../../types';
+import { getMaterials } from '../../lib/db';
 import { TrendingUp } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
@@ -7,8 +8,7 @@ export default function Prices() {
   const [prices, setPrices] = useState<MaterialPrice[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/materials`)
-      .then(r => r.json())
+    getMaterials()
       .then(setPrices)
       .catch(console.error);
   }, []);

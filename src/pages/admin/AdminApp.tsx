@@ -1,9 +1,17 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Users, Activity, LogOut, Download, AlertTriangle } from 'lucide-react';
+import { seedFirestore, getAllLots, getAllTransactions } from '../../lib/db';
+import { useEffect, useState } from 'react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 
 export function AdminApp() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -19,7 +27,7 @@ export function AdminApp() {
           <NavItem to="/admin/anomalies" icon={<AlertTriangle />} label="Anomalies" current={location.pathname} />
         </nav>
         <div className="p-4 border-t border-slate-800">
-          <button onClick={() => navigate('/')} className="flex items-center w-full px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition">
+          <button onClick={handleLogout} className="flex items-center w-full px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition">
             <LogOut className="w-5 h-5 mr-3" /> Exit
           </button>
         </div>
@@ -55,17 +63,50 @@ function NavItem({ to, icon, label, current }: any) {
 }
 
 function AdminAnalytics() {
+  const [stats, setStats] = useState({
+    totalLots: 0,
+    materialRecycled: 0,
+    valueHandled: 0,
+    avgEarnings: 0
+  });
+
+  useEffect(() => {
+    Promise.all([getAllLots(), getAllTransactions()]).then(([lots, txs]) => {
+      let materialRecycled = 0;
+      let valueHandled = 0;
+      
+      const completedTxs = txs.filter(t => t.transaction_status === 'COMPLETED');
+      
+      completedTxs.forEach(tx => {
+        valueHandled += tx.final_price;
+        const matchingLot = lots.find(l => l.id === tx.lot_id);
+        if (matchingLot) materialRecycled += matchingLot.weight;
+      });
+
+      const uniqueCollectors = new Set(txs.map(t => t.collector_id)).size;
+      const avgEarnings = uniqueCollectors > 0 ? (valueHandled / uniqueCollectors) : 0;
+
+      setStats({
+        totalLots: lots.length,
+        materialRecycled,
+        valueHandled,
+        avgEarnings: Math.round(avgEarnings)
+      });
+    }).catch(console.error);
+  }, []);
+
   const exportDataset = () => {
     alert('Dataset exported as CSV (Mock)');
   };
 
   const resetDemo = async () => {
     try {
-      await fetch('/api/reset', { method: 'POST' });
-      alert('Demo data reset successfully.');
+      await seedFirestore();
+      alert('Demo data seeded successfully.');
       window.location.reload();
     } catch (e) {
       console.error(e);
+      alert('Failed to seed demo data.');
     }
   };
 
@@ -84,10 +125,10 @@ function AdminAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Total Lots" value="102" />
-        <StatCard title="Material Recycled" value="2,450 kg" />
-        <StatCard title="Value Handled" value="₹4,25,000" />
-        <StatCard title="Avg Earnings/Collector" value="₹12,400" />
+        <StatCard title="Total Lots" value={stats.totalLots.toString()} />
+        <StatCard title="Material Recycled" value={`${stats.materialRecycled} kg`} />
+        <StatCard title="Value Handled" value={`₹${stats.valueHandled.toLocaleString()}`} />
+        <StatCard title="Avg Earnings/Collector" value={`₹${stats.avgEarnings.toLocaleString()}`} />
       </div>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">

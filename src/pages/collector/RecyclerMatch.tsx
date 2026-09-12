@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE, Lot, Recycler } from '../../types';
+import { Lot, Recycler } from '../../types';
+import { getLot, getMatchingRecyclers, createOffer } from '../../lib/db';
 import { CheckCircle2, MapPin, Truck, ChevronRight } from 'lucide-react';
 
 export default function RecyclerMatch() {
@@ -11,13 +12,15 @@ export default function RecyclerMatch() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/lots/${id}`)
-      .then(r => r.json())
+    if (!id) return;
+    getLot(id)
       .then(data => {
-        setLot(data);
-        return fetch(`${API_BASE}/recyclers/match?material=${data.material_category}`);
+        if (data) {
+          setLot(data);
+          return getMatchingRecyclers(data.material_category);
+        }
+        return [];
       })
-      .then(r => r.json())
       .then(data => {
         setRecyclers(data);
         setLoading(false);
@@ -29,17 +32,14 @@ export default function RecyclerMatch() {
   }, [id]);
 
   const requestOffer = async (recyclerId: string) => {
+    if (!id) return;
     try {
-      await fetch(`${API_BASE}/offers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lot_id: id,
-          recycler_id: recyclerId,
-          quoted_price: lot?.estimated_value_max || 0, // Mock for demo
-          pickup_available: true,
-          status: 'PENDING'
-        })
+      await createOffer({
+        lot_id: id,
+        recycler_id: recyclerId,
+        quoted_price: lot?.estimated_value_max || 0, // Mock for demo
+        pickup_available: true,
+        status: 'PENDING'
       });
       // In real life this notifies the recycler. For MVP demo, auto-accept or redirect to a wait page
       alert('Offer requested! For demo purposes, we will assume they accepted.');

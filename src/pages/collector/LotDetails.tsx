@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { API_BASE, MaterialPrice } from '../../types';
-import { addToSyncQueue } from '../../lib/offline';
+import { MaterialPrice } from '../../types';
+import { getMaterials, createLot } from '../../lib/db';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LotDetails() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { id } = useParams(); // 'new' or actual id
   
   const [weight, setWeight] = useState<string>('');
@@ -17,8 +19,7 @@ export default function LotDetails() {
   const image = state?.image;
 
   useEffect(() => {
-    fetch(`${API_BASE}/materials`)
-      .then(r => r.json())
+    getMaterials()
       .then(data => {
         setPrices(data);
       })
@@ -45,31 +46,21 @@ export default function LotDetails() {
   const saveLot = async () => {
     if (!weight) return;
     const lotData = {
-      collector_id: 'c1',
+      collector_id: currentUser?.uid || 'unknown',
       material_category: category,
       weight: parseFloat(weight),
       condition: 'Used',
       image_reference: image,
       estimated_value_min: estimatedValue?.min || 0,
       estimated_value_max: estimatedValue?.max || 0,
-      status: 'CREATED',
+      status: 'CREATED' as const,
       ai_confidence: confidence
     };
 
     try {
-      if (navigator.onLine) {
-        const res = await fetch(`${API_BASE}/lots`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(lotData)
-        });
-        const saved = await res.json();
-        navigate(`/collector/match/${saved.id}`);
-      } else {
-        await addToSyncQueue(`${API_BASE}/lots`, 'POST', lotData);
-        alert('Saved offline. Will sync when internet is available.');
-        navigate('/collector');
-      }
+      // With Firestore persistence enabled, this will seamlessly cache offline if there is no internet
+      const saved = await createLot(lotData);
+      navigate(`/collector/match/${saved.id}`);
     } catch (e) {
       console.error(e);
       alert('Error saving lot');

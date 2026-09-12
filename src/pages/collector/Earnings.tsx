@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { API_BASE, Transaction } from '../../types';
+import { Transaction } from '../../types';
+import { getTransactionsByCollector } from '../../lib/db';
 import { Wallet, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Earnings() {
   const [txs, setTxs] = useState<Transaction[]>([]);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    fetch(`${API_BASE}/transactions?collector_id=c1`)
-      .then(r => r.json())
+    if (!currentUser) return;
+    getTransactionsByCollector(currentUser.uid)
       .then(setTxs)
       .catch(console.error);
-  }, []);
+  }, [currentUser]);
 
   const total = txs.filter(t => t.payment_status === 'PAID').reduce((sum, t) => sum + t.final_price, 0);
 

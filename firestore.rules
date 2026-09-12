@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user role
+    function getUserRole() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc == null ? null : userDoc.data.role;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Anyone can create their own profile during signup
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Users can read/update their own profile, admins can read all
+      allow read, update: if isAuthenticated() && (request.auth.uid == userId || getUserRole() == 'admin');
+    }
+
+    // Materials and Recyclers Directories
+    match /materials/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    match /recyclers/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && getUserRole() == 'admin';
+    }
+
+    // Lots
+    match /lots/{lotId} {
+      // Collectors can create and read their own lots
+      allow create: if isAuthenticated() && getUserRole() == 'collector' && request.resource.data.collector_id == request.auth.uid;
+      // Recyclers and admins can read all lots
+      allow read: if isAuthenticated() && (
+        getUserRole() == 'recycler' || 
+        getUserRole() == 'admin' || 
+        (getUserRole() == 'collector' && resource.data.collector_id == request.auth.uid)
+      );
+      // Recyclers can update lots to make offers, collectors can update their own
+      allow update: if isAuthenticated(); // Simplified for MVP, ideally restrict specific fields
+    }
+
+    // Offers
+    match /offers/{offerId} {
+      allow read, create, update: if isAuthenticated(); // Simplified for MVP
+    }
+
+    // Transactions
+    match /transactions/{txId} {
+      allow read, create, update: if isAuthenticated(); // Simplified for MVP
+    }
+  }
+}

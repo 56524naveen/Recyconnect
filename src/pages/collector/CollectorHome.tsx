@@ -1,8 +1,23 @@
 import { useNavigate } from 'react-router-dom';
 import { Camera, Package, DollarSign, Search, ShieldAlert, Volume2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getTransactionsByCollector } from '../../lib/db';
+import { Transaction } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function CollectorHome() {
   const navigate = useNavigate();
+  const [recentTx, setRecentTx] = useState<Transaction | null>(null);
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    if (!currentUser) return;
+    getTransactionsByCollector(currentUser.uid)
+      .then(txs => {
+        if (txs.length > 0) setRecentTx(txs[0]);
+      })
+      .catch(console.error);
+  }, [currentUser]);
   
   const playAudio = (text: string) => {
     // Basic text-to-speech fallback
@@ -58,15 +73,17 @@ export default function CollectorHome() {
         />
       </div>
       
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-        <div>
-          <h3 className="font-bold text-gray-800">Recent: 15kg PCB</h3>
-          <p className="text-sm text-gray-500">Paid: ₹2,700 • Yesterday</p>
+      {recentTx && (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-gray-800">Recent Transaction</h3>
+            <p className="text-sm text-gray-500">Paid: ₹{recentTx.final_price.toLocaleString()} • {new Date(recentTx.created_at).toLocaleDateString()}</p>
+          </div>
+          <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+            ✓
+          </div>
         </div>
-        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-          ✓
-        </div>
-      </div>
+      )}
     </div>
   );
 }

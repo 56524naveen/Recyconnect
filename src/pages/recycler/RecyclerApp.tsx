@@ -1,11 +1,18 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Package, CheckCircle2, TrendingUp, Settings, LogOut, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { API_BASE, Lot, Transaction } from '../../types';
+import { Lot, Transaction } from '../../types';
+import { getAllLots, getAllTransactions } from '../../lib/db';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 
 export function RecyclerApp() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -22,7 +29,7 @@ export function RecyclerApp() {
           <NavItem to="/recycler/transactions" icon={<CheckCircle2 />} label="Transactions" current={location.pathname} />
         </nav>
         <div className="p-4 border-t border-gray-100">
-          <button onClick={() => navigate('/')} className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition">
+          <button onClick={handleLogout} className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition">
             <LogOut className="w-5 h-5 mr-3" /> Logout
           </button>
         </div>
@@ -32,7 +39,7 @@ export function RecyclerApp() {
       <main className="flex-1 overflow-auto">
         <header className="bg-white p-4 border-b border-gray-200 flex justify-between items-center md:hidden">
           <h1 className="font-bold text-lg text-blue-600">Recycler Portal</h1>
-          <button onClick={() => navigate('/')} className="text-gray-500"><LogOut className="w-5 h-5" /></button>
+          <button onClick={handleLogout} className="text-gray-500"><LogOut className="w-5 h-5" /></button>
         </header>
         <div className="p-6">
           <Routes>
@@ -63,13 +70,45 @@ function NavItem({ to, icon, label, current }: any) {
 }
 
 function DashboardHome() {
+  const [stats, setStats] = useState({
+    pendingLots: 0,
+    materialProcured: 0,
+    totalValue: 0
+  });
+
+  useEffect(() => {
+    Promise.all([getAllLots(), getAllTransactions()]).then(([lots, txs]) => {
+      const pendingLots = lots.filter(l => l.status === 'CREATED').length;
+      
+      const completedTxs = txs.filter(t => t.transaction_status === 'COMPLETED');
+      // For a real app, we'd sum the weights from the lot records matching these txs, 
+      // but for this MVP metric let's do a simple count or use a flat multiplier 
+      // based on average weight if we don't join records right here.
+      // Let's join them for accuracy:
+      let materialProcured = 0;
+      let totalValue = 0;
+      
+      completedTxs.forEach(tx => {
+        totalValue += tx.final_price;
+        const matchingLot = lots.find(l => l.id === tx.lot_id);
+        if (matchingLot) materialProcured += matchingLot.weight;
+      });
+
+      setStats({
+        pendingLots,
+        materialProcured,
+        totalValue
+      });
+    }).catch(console.error);
+  }, []);
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Overview</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Pending Lots" value="12" subtitle="Waiting for offers" color="bg-orange-50 text-orange-600" />
-        <StatCard title="Material Procured" value="450 kg" subtitle="This month" color="bg-blue-50 text-blue-600" />
-        <StatCard title="Value" value="₹45,200" subtitle="Paid out this month" color="bg-green-50 text-green-600" />
+        <StatCard title="Pending Lots" value={stats.pendingLots.toString()} subtitle="Waiting for offers" color="bg-orange-50 text-orange-600" />
+        <StatCard title="Material Procured" value={`${stats.materialProcured} kg`} subtitle="Total" color="bg-blue-50 text-blue-600" />
+        <StatCard title="Value" value={`₹${stats.totalValue.toLocaleString()}`} subtitle="Paid out" color="bg-green-50 text-green-600" />
       </div>
     </div>
   );
@@ -89,9 +128,9 @@ function IncomingLots() {
   const [lots, setLots] = useState<Lot[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/lots`)
-      .then(r => r.json())
-      .then(setLots);
+    getAllLots()
+      .then(setLots)
+      .catch(console.error);
   }, []);
 
   return (
@@ -141,9 +180,9 @@ function Transactions() {
   const [txs, setTxs] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/transactions`)
-      .then(r => r.json())
-      .then(setTxs);
+    getAllTransactions()
+      .then(setTxs)
+      .catch(console.error);
   }, []);
 
   return (
