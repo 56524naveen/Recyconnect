@@ -18,6 +18,7 @@ export function LanguageSelector() {
         <option value="hi">हिंदी (Hindi)</option>
         <option value="mr">मराठी (Marathi)</option>
         <option value="ur">اردو (Urdu)</option>
+        <option value="ta">தமிழ் (Tamil)</option>
       </select>
     </div>
   );

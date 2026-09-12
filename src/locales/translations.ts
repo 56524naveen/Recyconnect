@@ -94,6 +94,30 @@ export const translations = {
     'already_have_account': 'پہلے سے اکاؤنٹ ہے؟ سائن ان کریں',
     'or_continue_with': 'یا اس کے ساتھ جاری رکھیں',
     'sign_in_google': 'Google کے ساتھ سائن ان کریں'
+  },
+  ta: {
+    'welcome': 'வரவேற்கிறோம்',
+    'select_portal': 'தொடர உங்கள் போர்ட்டலைத் தேர்ந்தெடுக்கவும்',
+    'collector': 'சேகரிப்பாளர்',
+    'sell_ewaste': 'மின்-கழிவுகளை விற்கவும்',
+    'recycler': 'மறுசுழற்சி செய்பவர்',
+    'buy_process': 'பொருட்களை வாங்கி செயலாக்கவும்',
+    'admin_dashboard': 'நிர்வாக டாஷ்போர்டு',
+    'monitor_platform': 'இயங்குதள பகுப்பாய்வை கண்காணிக்கவும்',
+    'sign_out': 'வெளியேறு',
+    'app_title': 'RecyConnect',
+    'app_subtitle': 'ஸ்கிராப்பில் இருந்து முறையான மறுசுழற்சி வரை',
+    'full_name': 'முழு பெயர்',
+    'email_address': 'மின்னஞ்சல் முகவரி',
+    'password': 'கடவுச்சொல்',
+    'i_am_a': 'நான் ஒரு...',
+    'please_wait': 'காத்திருக்கவும்...',
+    'sign_in': 'உள்நுழைக',
+    'create_account': 'கணக்கை உருவாக்கு',
+    'dont_have_account': 'கணக்கு இல்லையா? பதிவு செய்யவும்',
+    'already_have_account': 'ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக',
+    'or_continue_with': 'அல்லது இதன் மூலம் தொடரவும்',
+    'sign_in_google': 'Google மூலம் உள்நுழைக'
   }
 };
 
